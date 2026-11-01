@@ -22,7 +22,7 @@ type MyPost = {
 
 type Status = 'loading' | 'success' | 'error';
 
-   const POSTS_URL = 'https://dummyjson.com/commentsx?limit=15';
+   const POSTS_URL = 'https://dummyjson.com/comments?limit=15';
 const ADD_POST_URL = 'https://dummyjson.com/comments/add';
 
 // Daftar nama untuk menggantikan username dari API
