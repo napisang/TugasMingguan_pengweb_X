@@ -10,22 +10,19 @@ type HomeProps = {
 
 type ApiPost = {
   id: number;
+  title: string;
   body: string;
   likes: number;
-  user: { id: number; username: string };
-};
-
-type MyPost = {
-  id: number;
-  text: string;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type Status = 'loading' | 'success' | 'error';
 
-   const POSTS_URL = 'https://dummyjson.com/comments?limit=15';
-const ADD_POST_URL = 'https://dummyjson.com/comments/add';
+const POSTS_URL = 'http://localhost:3000/posts';
+const ADD_POST_URL = 'http://localhost:3000/posts';
 
-// Daftar nama untuk menggantikan username dari API
 const NAMA_INDO = [
   'Budi Santoso', 'Siti Nurhaliza', 'Agus Setiawan', 'Dewi Lestari',
   'Rizky Pratama', 'Putri Ayu', 'Dimas Prasetyo', 'Ayu Wulandari',
@@ -54,15 +51,15 @@ function avatarUrl(name: string, background = '1d9bf0') {
 function getPosts(): Promise<ApiPost[]> {
   return fetch(POSTS_URL)
     .then((res) => {
-      if (!res.ok) throw new Error(`Server membalas dengan status ${res.status}`);
+      if (!res.ok) {
+        throw new Error(`Server membalas dengan status ${res.status}`);
+      }
       return res.json();
-    })
-    .then((data) => data.comments);
+    });
 }
 
 export default function Home({ username, onLogout }: HomeProps) {
   const [apiPosts, setApiPosts] = useState<ApiPost[]>([]);
-  const [myPosts, setMyPosts] = useState<MyPost[]>([]);
   const [text, setText] = useState('');
 
   const [status, setStatus] = useState<Status>('loading');
@@ -102,17 +99,25 @@ export default function Home({ username, onLogout }: HomeProps) {
     fetch(ADD_POST_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body: content, postId: 3, userId: 5 }),
+      body: JSON.stringify({
+        title: 'Postingan X',
+        body: content,
+        userId: 5,
+      }),
     })
       .then((res) => {
-        if (!res.ok) throw new Error(`Status ${res.status}`);
+        if (!res.ok) {
+          throw new Error(`Status ${res.status}`);
+        }
         return res.json();
       })
       .then(() => {
-        setMyPosts([{ id: Date.now(), text: content }, ...myPosts]);
         setText('');
+        loadPosts();
       })
-      .catch((err) => setPostError(`Gagal mengirim post: ${err.message}`))
+      .catch((err) => {
+        setPostError(`Gagal mengirim post: ${err.message}`);
+      })
       .finally(() => setIsPosting(false));
   }
 
@@ -123,13 +128,22 @@ export default function Home({ username, onLogout }: HomeProps) {
       <main className="main-feed">
         <header className="feed-header">
           <div className="feed-tabs">
-            <div className="tab active"><span>For you</span></div>
-            <div className="tab"><span>Following</span></div>
+            <div className="tab active">
+              <span>For you</span>
+            </div>
+            <div className="tab">
+              <span>Following</span>
+            </div>
           </div>
         </header>
 
         <section className="post-composer">
-          <img src={avatarUrl(username)} alt="Avatar" className="avatar" />
+          <img
+            src={avatarUrl(username)}
+            alt="Avatar"
+            className="avatar"
+          />
+
           <div className="composer-content">
             <textarea
               className="composer-input"
@@ -137,9 +151,16 @@ export default function Home({ username, onLogout }: HomeProps) {
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
-            {postError && <p style={{ color: 'red', fontSize: 14 }}>{postError}</p>}
+
+            {postError && (
+              <p style={{ color: 'red', fontSize: 14 }}>
+                {postError}
+              </p>
+            )}
+
             <div className="composer-actions">
               <div className="action-icons">🖼️</div>
+
               <button
                 className="btn btn--accent btn--small"
                 onClick={handlePost}
@@ -152,24 +173,23 @@ export default function Home({ username, onLogout }: HomeProps) {
           </div>
         </section>
 
-        {myPosts.map((p) => (
-          <Post
-            key={p.id}
-            isNew
-            name={username}
-            handle={toHandle(username)}
-            avatar={avatarUrl(username)}
-            text={p.text}
-            replies={0}
-            reposts={0}
-            likes={0}
-            views={0}
-          />
-        ))}
-
         {status === 'loading' && (
-          <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="spinner">
+          <div
+            style={{
+              textAlign: 'center',
+              padding: 40,
+              color: 'var(--text-muted)',
+            }}
+          >
+            <svg
+              width="30"
+              height="30"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="spinner"
+            >
               <path d="M12 2a10 10 0 0 1 10 10" />
             </svg>
             <p>Memuat data...</p>
@@ -178,8 +198,14 @@ export default function Home({ username, onLogout }: HomeProps) {
 
         {status === 'error' && (
           <div style={{ textAlign: 'center', padding: 40 }}>
-            <p style={{ color: 'red', marginBottom: 12 }}>Gagal memuat data: {errorMessage}</p>
-            <button className="btn btn--accent btn--small" onClick={handleRetry}>
+            <p style={{ color: 'red', marginBottom: 12 }}>
+              Gagal memuat data: {errorMessage}
+            </p>
+
+            <button
+              className="btn btn--accent btn--small"
+              onClick={handleRetry}
+            >
               Coba Lagi
             </button>
           </div>
@@ -187,18 +213,20 @@ export default function Home({ username, onLogout }: HomeProps) {
 
         {status === 'success' &&
           apiPosts.map((p) => {
-            const nama = namaIndo(p.user.id);
+            const nama =
+              p.userId === 5 ? username : namaIndo(p.userId);
+
             return (
               <Post
                 key={p.id}
                 name={nama}
                 handle={toHandle(nama)}
-                avatar={avatarUrl(nama, 'random')}
+                avatar={avatarUrl(nama)}
                 text={p.body}
-                replies={p.id % 50}
-                reposts={(p.id * 3) % 30}
+                replies={0}
+                reposts={0}
                 likes={p.likes}
-                views={p.likes * 12 + p.id}
+                views={0}
               />
             );
           })}
